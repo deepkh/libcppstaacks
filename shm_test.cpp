@@ -11,79 +11,18 @@
 
 #include <string.h>
 #include <string>
-
-class Shm {
-public:
-  Shm() {}
-
-  ~Shm() {
-    if (shm_fd_ > 0) {
-      printf("[Shm] %s close\n", shm_name_.c_str());
-      close(shm_fd_);
-      if (creator_) {
-        printf("[Shm] %s unlink\n", shm_name_.c_str());
-        sem_unlink(shm_name_.c_str());
-      }
-    }
-  }
-
-  int Init(std::string shm_name, bool creator, int shm_size) {
-    shm_name_ = shm_name;
-    creator_ = creator;
-    shm_size_ = shm_size;
-
-    if (creator_) {
-      printf("[Shm] %s create %d\n", shm_name_.c_str(), shm_size);
-      shm_fd_ = shm_open(shm_name_.c_str(), O_CREAT | O_RDWR, 0666);
-    } else {
-      printf("[Shm] %s open\n", shm_name_.c_str());
-      shm_fd_ = shm_open(shm_name_.c_str(), O_RDWR, 0666);
-    }
-
-    if (shm_fd_ == -1) {
-      printf("error 1\n");
-      return -1;
-    }
-      
-    if (creator_ && ftruncate(shm_fd_, shm_size) == -1) {
-      printf("error 2\n");
-      return -2;
-    }
-
-    if (creator_) {
-      shm_ptr_ = mmap(NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd_, 0);
-    } else {
-      shm_ptr_ = mmap(NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd_, 0);
-    }
-
-    if (shm_ptr_ == MAP_FAILED) {
-      printf("error 3\n");
-      return -3;
-    }
-
-    return 0;
-  }
-  
-  void *Data() {
-    return shm_ptr_;
-  }
-
-  int Size() {
-    return shm_size_;
-  }
-private:
-  bool creator_ = false;
-  std::string shm_name_;
-  int shm_fd_ = -1;
-  int shm_size_ = 0;
-  void *shm_ptr_ = nullptr;
-};
+#include <memory>
+#include <vector>
 
 class Sem {
 public:
   Sem() {}
 
   ~Sem() {
+    Close();
+  }
+
+  void Close() {
     if (sem_) {
       printf("[Sem] %s close\n", sem_name_.c_str());
       sem_close(sem_);
@@ -91,6 +30,7 @@ public:
         printf("[Sem] %s unlink\n", sem_name_.c_str());
         sem_unlink(sem_name_.c_str());
       }
+      sem_ = nullptr;
     }
   }
 
@@ -106,7 +46,7 @@ public:
       sem_ = sem_open(sem_name_.c_str(), 0);
     }
     if (sem_ == SEM_FAILED) {
-        printf("sem error 1\n");
+        printf("[Sem] sem error 1\n");
         return -1;
     }
     return 0;
@@ -129,7 +69,7 @@ public:
     if (sem_getvalue(sem_, &value) == -1) {
         return -1;
     } else {
-        printf("Semaphore value: %d\n", value);  // Should print 3 initially
+        printf("[Sem] Semaphore value: %d\n", value);  // Should print 3 initially
     }
     return 0;
   }
@@ -141,8 +81,12 @@ private:
 
 class SemLock {
 public:
-  SemLock() {};
-  ~SemLock() {};
+  SemLock() {}
+  ~SemLock() { Close(); }
+
+  void Close() {
+    sem_.Close();
+  }
 
   int Init(std::string sem_name, bool creator) {
     return sem_.Init(sem_name, creator, 1);
@@ -160,13 +104,200 @@ private:
   Sem sem_;
 };
 
-struct ShmSlot {
-  void *data;
-  uint32_t size;
-  uint32_t is_block;
+class ShmAlloc {
+public:
+  ShmAlloc() {}
+
+  ~ShmAlloc() {
+    Close();
+  }
+
+  void Close() {
+    if (fd_ >= 0) {
+      printf("[ShmAlloc] %s close\n", shm_name_.c_str());
+      close(fd_);
+      fd_ = -1;
+
+      if (creator_) {
+        printf("[ShmAlloc] %s unlink\n", shm_name_.c_str());
+        sem_unlink(shm_name_.c_str());
+      }
+    }
+  }
+
+  int Init(std::string shm_name, bool creator, int capacity) {
+    shm_name_ = shm_name;
+    creator_ = creator;
+    capacity_ = capacity;
+
+    if (creator_) {
+      printf("[ShmAlloc] %s create %d\n", shm_name_.c_str(), capacity_);
+      fd_ = shm_open(shm_name_.c_str(), O_CREAT | O_RDWR, 0666);
+    } else {
+      printf("[ShmAlloc] %s open %d\n", shm_name_.c_str(), capacity_);
+      fd_ = shm_open(shm_name_.c_str(), O_RDWR, 0666);
+    }
+
+    if (fd_ < 0) {
+      printf("[ShmAlloc] error 1\n");
+      return -1;
+    }
+      
+    if (creator_ && ftruncate(fd_, capacity_) == -1) {
+      printf("[ShmAlloc] error 2\n");
+      return -2;
+    }
+
+    if ((mapped_addr_ = mmap(NULL, capacity_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0)) == MAP_FAILED) {
+      printf("[ShmAlloc] error 3\n");
+      return -3;
+    }
+
+    return 0;
+  }
+  
+  void *MappedAddr() {
+    return mapped_addr_;
+  }
+
+  int Capacity() {
+    return capacity_;
+  }
+
+private:
+  bool creator_ = false;
+  std::string shm_name_;
+  int fd_ = -1;
+  void *mapped_addr_ = nullptr;
+  int capacity_ = 0;
 };
 
-#define SHM_NAME "/tmp/my_shm"
+struct ShmDataHead {
+  uint64_t seq;
+  int size;
+};
+
+class ShmData {
+public:
+  ShmData() {}
+  ~ShmData() {}
+
+  void Init(void *addr, int capacity) {
+    head_ = static_cast<ShmDataHead *>(addr);
+    data_ = static_cast<uint8_t *>(addr + sizeof(ShmDataHead));
+    capacity_ = capacity - sizeof(ShmDataHead);
+  }
+
+  uint8_t *Data() {
+    return data_;
+  }
+
+  uint64_t Seq() {
+    return head_->seq;
+  }
+
+  int Size() {
+    return head_->size;
+  }
+
+  int Capacity() {
+    return capacity_;
+  }
+
+private:
+  ShmDataHead *head_ = nullptr;
+  uint8_t *data_ = nullptr;
+  int capacity_ = 0;
+};
+
+class ShmChunk {
+public:
+  ShmChunk() {}
+  ~ShmChunk() {}
+  int Init(const std::string &name, bool creator, void *chunk_addr, int chunk_capacity) {
+    name_ = name;
+    const std::string sem_lock_name = name_ +"-semlock";
+    if (sem_lock_.Init(sem_lock_name, creator)) {
+      printf("[ShmChunk] failed to sem_lock_.Init %s %d\n", sem_lock_name.c_str(), creator);
+      return -1;
+    }
+
+    shm_data_.Init(chunk_addr, chunk_capacity);
+    printf("[ShmChunk] %s %p %d %d \n"
+      , Name().c_str()
+      , shm_data_.Data()
+      , shm_data_.Capacity()
+      , shm_data_.Size());
+  }
+
+  const std::string &Name() {
+    return name_;
+  }
+
+  void Lock() {
+    return sem_lock_.Lock();
+  }
+
+  void UnLock() {
+    sem_lock_.UnLock();
+  }
+
+  ShmData &Data() {
+    return shm_data_;
+  }
+
+private:
+  std::string name_;
+  SemLock sem_lock_;
+  ShmData shm_data_;
+};
+
+class ShmQueue {
+public:
+  ShmQueue() {}
+  ~ShmQueue() {}
+
+  void Close() {
+    shm_alloc_.Close();
+    shm_chunk_list_.clear();
+  }
+
+  int Init(const std::string &shm_name, bool creator, int chunk_capacity, int chunk_num) {
+    const int shm_capacity = chunk_capacity * chunk_num;
+    if (shm_alloc_.Init(shm_name, creator, shm_capacity)) {
+      printf("[ShmQueue] failed to alloc %d\n", shm_capacity);
+      return -1;
+    }
+
+    void *mapped_ptr = shm_alloc_.MappedAddr();
+
+    for (int i=0; i<chunk_num; i++) {
+      const std::string chunk_name = shm_name +"-chunk-" + std::to_string(i);
+      std::shared_ptr<ShmChunk> shm_chunk = std::make_shared<ShmChunk>();
+      if (shm_chunk->Init(chunk_name, creator, mapped_ptr+i*chunk_capacity, chunk_capacity)) {
+        printf("[ShmQueue] failed to shm_chunk->Init %s\n", chunk_name.c_str());
+        return -1;
+      }
+
+      shm_chunk_list_.emplace_back(shm_chunk);
+    }
+  }
+
+  const std::shared_ptr<ShmChunk> At(int i) {
+    return shm_chunk_list_.at(i);
+  }
+
+  int Size() {
+    return shm_chunk_list_.size();
+  }
+
+private:
+  ShmAlloc shm_alloc_;
+  std::vector<std::shared_ptr<ShmChunk>> shm_chunk_list_;
+};
+
+
+#define SHM_NAME "/my_shm"
 #define SHM_CAPACITY 4096
 #define SHM_NUM 4096
 #define SEM_NAME "/my_sem"
@@ -214,20 +345,19 @@ int run_reader() {
   return 0;
 }
 
-
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        fprintf(stderr, "Usage: %s [writer|reader]\n", argv[0]);
-        return 1;
+      fprintf(stderr, "Usage: %s [writer|reader]\n", argv[0]);
+      return 1;
     }
 
     if (strcmp(argv[1], "writer") == 0) {
-        run_writer();
+      run_writer();
     } else if (strcmp(argv[1], "reader") == 0) {
-        run_reader();
+      run_reader();
     } else {
-        fprintf(stderr, "Unknown mode: %s\n", argv[1]);
-        return 1;
+      fprintf(stderr, "Unknown mode: %s\n", argv[1]);
+      return 1;
     }
 
     return 0;
