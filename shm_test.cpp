@@ -38,11 +38,11 @@ public:
     sem_name_ = sem_name;
     creator_ = creator;
     if (creator_) {
-      //printf("[Sem] %s create\n", sem_name_.c_str());
+      printf("     [Sem] %s create\n", sem_name_.c_str());
       sem_unlink(sem_name_.c_str());
       sem_ = sem_open(sem_name_.c_str(), O_CREAT | O_EXCL, 0644, default_value);
     } else {
-      //printf("[Sem] %s open\n", sem_name_.c_str());
+      printf("     [Sem] %s open\n", sem_name_.c_str());
       sem_ = sem_open(sem_name_.c_str(), 0);
     }
     if (sem_ == SEM_FAILED) {
@@ -197,6 +197,10 @@ public:
     capacity_ = capacity;
   }
 
+  ShmDataHead *Head() {
+    return head_;
+  }
+
   uint8_t *Addr() {
     return addr_;
   }
@@ -285,6 +289,9 @@ public:
 
   int Init(const std::string &shm_name, bool creator, bool reset, int chunk_capacity, int chunk_num) {
     const int shm_size = sizeof(ShmQueueHead) + (chunk_capacity + sizeof(ShmDataHead)) * chunk_num;
+    printf("%d %d %d %d\n"
+      , sizeof(ShmQueueHead), chunk_capacity
+      , sizeof(ShmDataHead), chunk_num);
     if (shm_alloc_.Init(shm_name, creator, reset, shm_size)) {
       printf("[ShmQueue] failed to alloc %d\n", shm_size);
       return -1;
@@ -317,7 +324,7 @@ public:
     return head_;
   }
 
-  const std::shared_ptr<ShmChunk> At(int i) {
+  std::shared_ptr<ShmChunk> At(int i) {
     return shm_chunk_list_.at(i);
   }
 
@@ -363,9 +370,17 @@ int run_writer() {
   if (shm_queue.Init(SHM_NAME, true, true, SHM_CAPACITY, SHM_NUM)) {
     printf("%s failed to shm_queue.Init\n", __func__);
     return -1;
-  }  
+  }
 
-
+  for (int i=0; i<SEM_RUN; i++) {
+    int j = i%SHM_NUM;
+    auto chk = shm_queue.At(j);
+    chk->Lock();
+    chk->Data().Head()->seq = i;
+    printf("[WRITER] j:%8d seq:%16ld \n", j, chk->Data().Head()->seq);
+    chk->UnLock();
+    usleep(1000000);
+  }
 #endif
   return 0;
 }
@@ -387,6 +402,34 @@ int run_reader() {
     sem_lock.UnLock();
   }
 #else
+  ShmQueue shm_queue;
+  if (shm_queue.Init(SHM_NAME, false, false, SHM_CAPACITY, SHM_NUM)) {
+    printf("%s failed to shm_queue.Init\n", __func__);
+    return -1;
+  }
+
+  uint64_t seq_curr = 0;
+
+  for (int i=0; i<SEM_RUN; i++) {
+    int j = i%SHM_NUM;
+    uint64_t seq = 0;
+    auto chk = shm_queue.At(j);
+
+    do {
+      chk->Lock();
+      seq = chk->Data().Head()->seq;
+      chk->UnLock();
+      if (seq_curr <= seq) {
+        break;
+      }
+      usleep(1);
+    } while(true);
+
+    seq_curr = seq;
+
+    printf("[READER] j:%8d seq:%16ld \n", j, seq);
+    usleep(500000);
+  }
 
 
 #endif
