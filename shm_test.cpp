@@ -205,12 +205,12 @@ public:
     return addr_;
   }
 
-  uint64_t Seq() {
-    return head_->seq;
+  uint64_t &Seq() {
+    return (head_->seq);
   }
 
-  int Size() {
-    return head_->size;
+  int &Size() {
+    return (head_->size);
   }
 
   int Capacity() {
@@ -289,7 +289,7 @@ public:
 
   int Init(const std::string &shm_name, bool creator, bool reset, int chunk_capacity, int chunk_num) {
     const int shm_size = sizeof(ShmQueueHead) + (chunk_capacity + sizeof(ShmDataHead)) * chunk_num;
-    printf("%d %d %d %d\n"
+    printf("%ld %d %ld %d\n"
       , sizeof(ShmQueueHead), chunk_capacity
       , sizeof(ShmDataHead), chunk_num);
     if (shm_alloc_.Init(shm_name, creator, reset, shm_size)) {
@@ -324,7 +324,7 @@ public:
     return head_;
   }
 
-  std::shared_ptr<ShmChunk> At(int i) {
+  const std::shared_ptr<ShmChunk> &At(int i) {
     return shm_chunk_list_.at(i);
   }
 
@@ -343,7 +343,7 @@ private:
 #define SHM_CAPACITY 64
 #define SHM_NUM 16
 #define SEM_NAME "/my_sem"
-#define SEM_RUN 10000000
+#define SEM_RUN 100000
 
 int run_writer() {
 #if 0
@@ -367,20 +367,37 @@ int run_writer() {
   }
 #else
   ShmQueue shm_queue;
+  uint64_t *data;
+  uint64_t sum = 0;
   if (shm_queue.Init(SHM_NAME, true, true, SHM_CAPACITY, SHM_NUM)) {
     printf("%s failed to shm_queue.Init\n", __func__);
     return -1;
   }
+    
+  usleep(5000000);
 
-  for (int i=0; i<SEM_RUN; i++) {
+  for (uint64_t i=0; i<SEM_RUN; i++) {
     int j = i%SHM_NUM;
     auto chk = shm_queue.At(j);
     chk->Lock();
-    chk->Data().Head()->seq = i;
-    printf("[WRITER] j:%8d seq:%16ld \n", j, chk->Data().Head()->seq);
+    chk->Data().Seq() = i;
+    chk->Data().Size() = sizeof(i);
+    data = reinterpret_cast<uint64_t*>(chk->Data().Addr());
+    *data = i;
+    sum += *data;
+#if 1
+    printf("[WRITER] j:%8d seq:%16ld data:%16ld size:%d sum:%ld\n"
+        , j, chk->Data().Head()->seq
+        , *data
+        , chk->Data().Size()
+        , sum);
+#endif
     chk->UnLock();
-    usleep(1000000);
+    usleep(1000);
+    //usleep(1000000);
   }
+
+  printf("TOTAL:%ld\n", sum);
 #endif
   return 0;
 }
@@ -403,6 +420,9 @@ int run_reader() {
   }
 #else
   ShmQueue shm_queue;
+  uint64_t data;
+  int size;
+  uint64_t sum = 0;
   if (shm_queue.Init(SHM_NAME, false, false, SHM_CAPACITY, SHM_NUM)) {
     printf("%s failed to shm_queue.Init\n", __func__);
     return -1;
@@ -410,26 +430,38 @@ int run_reader() {
 
   uint64_t seq_curr = 0;
 
-  for (int i=0; i<SEM_RUN; i++) {
+  for (uint64_t i=0; i<SEM_RUN; i++) {
     int j = i%SHM_NUM;
     uint64_t seq = 0;
     auto chk = shm_queue.At(j);
 
     do {
       chk->Lock();
-      seq = chk->Data().Head()->seq;
-      chk->UnLock();
-      if (seq_curr <= seq) {
+      seq = chk->Data().Seq();
+      size = chk->Data().Size();
+      data = *(reinterpret_cast<uint64_t*>(chk->Data().Addr()));
+      if (seq_curr <= seq && size > 0) {
+        sum += data;
+        chk->UnLock();
         break;
       }
+      chk->UnLock();
       usleep(1);
     } while(true);
 
     seq_curr = seq;
 
-    printf("[READER] j:%8d seq:%16ld \n", j, seq);
-    usleep(500000);
+#if 1
+    printf("[READER] j:%8d seq:%16ld data:%16ld size:%d sum:%ld\n"
+        , j
+        , seq
+        , data
+        , size
+        , sum);
+#endif
+    //usleep(500000);
   }
+  printf("TOTAL:%ld\n", sum);
 
 
 #endif
