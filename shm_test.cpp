@@ -341,9 +341,9 @@ private:
 
 #define SHM_NAME "/my_shm"
 #define SHM_CAPACITY 64
-#define SHM_NUM 16
+#define SHM_NUM 3
 #define SEM_NAME "/my_sem"
-#define SEM_RUN 100000
+#define SEM_RUN 10000
 
 int run_writer() {
 #if 0
