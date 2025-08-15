@@ -1,37 +1,6 @@
-#include <iostream>
-#include <string>
-#include <variant>
-#include <vector>
-#include <cstdint>
+#include "variant.hpp"
 
-// Example Enums
-enum class EEnumInt8  : int8_t  { INT8_1 = -1, INT8_2 = 2 };
-enum class EEnumInt16 : int16_t { INT16_1 = -100, INT16_2 = 200 };
-
-// Example car types
-struct PoschCar {
-    int horsepower;
-};
-struct ToyotaCar {
-    std::string model;
-};
-struct HondaCar {
-    bool hybrid;
-};
-
-// AnyValueVector definition
-struct AnyValueVector {
-    int index;
-    std::string name;
-    std::vector<std::variant<
-        PoschCar, ToyotaCar, HondaCar,
-        bool, int64_t, int8_t,
-        EEnumInt8, EEnumInt16
-    >> car_list;
-};
-
-using enum EEnumInt8;
-using enum EEnumInt16;
+using namespace test;
 
 // Dump function
 void DumpAnyValueVector(const AnyValueVector& av) {
@@ -65,27 +34,19 @@ void DumpAnyValueVector(const AnyValueVector& av) {
             }
         }, item);
     }
+            std::cout << std::endl;
 }
 
 int main() {
-    AnyValueVector dealer1 {
-        0,
-        "Mixed Dealer",
-        {
-            PoschCar{450},
-            ToyotaCar{"Supra"},
-            HondaCar{true},
-            true,
-            876543210,
-            -5,
-            -5,
-            10,
-            INT8_1,
-            INT16_1
-        }
-    };
-
     DumpAnyValueVector(dealer1);
+
+    int len = dealer_array_len;
+    std::cout << "len: " << len << std::endl;
+
+    for (int i=0; i<len; i++) {
+      DumpAnyValueVector(dealer_array[i]);
+    }
+    
     return 0;
 }
 

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>STL Containers Comparison</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    line-height: 1.6;
+  }
+  h1, h2 {
+    color: #2c3e50;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 30px;
+  }
+  th, td {
+    border: 1px solid #34495e;
+    padding: 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background-color: #34495e;
+    color: white;
+  }
+  tr:nth-child(even) {
+    background-color: #ecf0f1;
+  }
+  code {
+    background-color: #f5f5f5;
+    padding: 2px 4px;
+    font-family: Consolas, monospace;
+  }
+</style>
+</head>
+<body>
+
+<h1>STL Containers Comparison</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th>std::vector</th>
+      <th>std::list</th>
+      <th>std::array</th>
+      <th>std::queue</th>
+      <th>std::stack</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Type</td>
+      <td>Dynamic contiguous array</td>
+      <td>Doubly linked list</td>
+      <td>Fixed-size contiguous array</td>
+      <td>Container adaptor (usually uses deque)</td>
+      <td>Container adaptor (usually uses deque)</td>
+    </tr>
+    <tr>
+      <td>Size</td>
+      <td>Dynamic (can grow/shrink at runtime)</td>
+      <td>Dynamic (can grow/shrink at runtime)</td>
+      <td>Fixed at compile-time</td>
+      <td>Dynamic (depends on underlying container)</td>
+      <td>Dynamic (depends on underlying container)</td>
+    </tr>
+    <tr>
+      <td>Memory layout</td>
+      <td>Contiguous memory</td>
+      <td>Non-contiguous (nodes allocated separately)</td>
+      <td>Contiguous memory</td>
+      <td>Uses underlying container memory layout</td>
+      <td>Uses underlying container memory layout</td>
+    </tr>
+    <tr>
+      <td>Access time</td>
+      <td>Random access in O(1)</td>
+      <td>No random access; only sequential O(n)</td>
+      <td>Random access in O(1)</td>
+      <td>Only front() and back() access; no random access</td>
+      <td>Only top() access; no random access</td>
+    </tr>
+    <tr>
+      <td>Insertion/deletion</td>
+      <td>Fast at end (amortized O(1)), slow in middle (O(n))</td>
+      <td>Fast anywhere (O(1) insertion/deletion if iterator known)</td>
+      <td>None (fixed size, no insertion/deletion)</td>
+      <td>Push/pop at one end only (O(1))</td>
+      <td>Push/pop at one end only (O(1))</td>
+    </tr>
+    <tr>
+      <td>Use cases</td>
+      <td>When fast random access and cache locality are important</td>
+      <td>When frequent insertions/deletions in middle or both ends are needed</td>
+      <td>When size is fixed and known at compile-time</td>
+      <td>When FIFO queue behavior is needed</td>
+      <td>When LIFO stack behavior is needed</td>
+    </tr>
+    <tr>
+      <td>Overhead</td>
+      <td>Minimal overhead, only dynamic resizing</td>
+      <td>Higher overhead due to pointers per node</td>
+      <td>Minimal overhead</td>
+      <td>Depends on underlying container (default is deque)</td>
+      <td>Depends on underlying container (default is deque)</td>
+    </tr>
+    <tr>
+      <td>Memory management</td>
+      <td>Uses allocator, contiguous buffer</td>
+      <td>Allocates nodes individually</td>
+      <td>Allocated on stack or static memory</td>
+      <td>Uses underlying container allocator</td>
+      <td>Uses underlying container allocator</td>
+    </tr>
+    <tr>
+      <td>Iterator invalidation</td>
+      <td>Insertion/deletion at end does not invalidate others except when realloc happens; insert/delete in middle invalidates after point</td>
+      <td>Only iterators to deleted elements invalidated</td>
+      <td>Never invalidated</td>
+      <td>Depends on underlying container</td>
+      <td>Depends on underlying container</td>
+    </tr>
+    <tr>
+      <td>Example</td>
+      <td><code>std::vector&lt;int&gt; v; v.push_back(10);</code></td>
+      <td><code>std::list&lt;int&gt; l; l.push_back(10);</code></td>
+      <td><code>std::array&lt;int, 5&gt; a = {1, 2, 3, 4, 5};</code></td>
+      <td><code>std::queue&lt;int&gt; q; q.push(10);</code></td>
+      <td><code>std::stack&lt;int&gt; s; s.push(10);</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>More Details</h2>
+
+<h3>1. std::vector</h3>
+<ul>
+  <li>Stores elements contiguously like a C-style array.</li>
+  <li>Excellent cache performance.</li>
+  <li>Resizes dynamically, but may need to reallocate (which copies elements).</li>
+  <li>Supports random access via <code>operator[]</code> or <code>at()</code>.</li>
+</ul>
+
+<h3>2. std::list</h3>
+<ul>
+  <li>Doubly linked list.</li>
+  <li>Nodes stored non-contiguously; each element points to next and previous.</li>
+  <li>Insertions and deletions anywhere in the list are efficient (constant time).</li>
+  <li>No random access; iterating to an element takes O(n).</li>
+  <li>More memory overhead due to storing pointers.</li>
+</ul>
+
+<h3>3. std::array</h3>
+<ul>
+  <li>Fixed-size array with size known at compile time.</li>
+  <li>Wrapper around a raw array but behaves like an STL container.</li>
+  <li>No dynamic memory allocation.</li>
+  <li>Supports random access in O(1).</li>
+  <li>Useful for small fixed-size sequences or as members of classes.</li>
+</ul>
+
+<h3>4. std::queue</h3>
+<ul>
+  <li>Adapter container implementing FIFO.</li>
+  <li>Internally uses a container like <code>std::deque</code> by default (which allows efficient push/pop at both ends).</li>
+  <li>Exposes only limited interface: <code>push()</code>, <code>pop()</code>, <code>front()</code>, <code>back()</code>.</li>
+  <li>No random access.</li>
+</ul>
+
+<h3>5. std::stack</h3>
+<ul>
+  <li>Adapter container implementing LIFO stack.</li>
+  <li>Internally uses a container like <code>std::deque</code> by default (which allows efficient push/pop at one end).</li>
+  <li>Exposes only limited interface: <code>push()</code>, <code>pop()</code>, <code>top()</code>.</li>
+  <li>No random access.</li>
+</ul>
+
+<h2>Summary of When to Use</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Scenario</th>
+      <th>Recommended Container</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Need fast random access & dynamic resizing</td>
+      <td><code>std::vector</code></td>
+    </tr>
+    <tr>
+      <td>Frequent insertion/deletion in middle</td>
+      <td><code>std::list</code></td>
+    </tr>
+    <tr>
+      <td>Fixed size known at compile time</td>
+      <td><code>std::array</code></td>
+    </tr>
+    <tr>
+      <td>Need FIFO queue</td>
+      <td><code>std::queue</code></td>
+    </tr>
+    <tr>
+      <td>Need LIFO stack</td>
+      <td><code>std::stack</code></td>
+    </tr>
+  </tbody>
+</table>
+
+</body>
+</html>
+
