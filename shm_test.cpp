@@ -268,6 +268,7 @@ private:
   ShmData shm_data_;
 };
 
+
 struct ShmQueueHead {
   uint64_t write_seq;
   uint64_t read_seq;
@@ -278,7 +279,27 @@ struct ShmQueueHead {
 };
 
 class ShmQueue {
+
 public:
+  class ShmChunkGuard {
+  public:
+    ShmChunkGuard(ShmQueue *queue, int i) {
+      chunk_ = queue->At(i);
+      chunk_->Lock();
+    }
+    ~ShmChunkGuard() {
+      chunk_->UnLock();
+    }
+
+    ShmData &Data() {
+      return chunk_->Data();
+    }
+
+  private:
+    ShmQueue *queue = nullptr;
+    std::shared_ptr<ShmChunk> chunk_;
+  };
+
   ShmQueue() {}
   ~ShmQueue() {}
 
@@ -326,6 +347,10 @@ public:
 
   const std::shared_ptr<ShmChunk> &At(int i) {
     return shm_chunk_list_.at(i);
+  }
+
+  ShmChunkGuard Enqueue(int i) {
+    return ShmChunkGuard(this, i);
   }
 
   int Size() {
@@ -378,21 +403,39 @@ int run_writer() {
 
   for (uint64_t i=0; i<SEM_RUN; i++) {
     int j = i%SHM_NUM;
+#if 0
     auto chk = shm_queue.At(j);
     chk->Lock();
     chk->Data().Seq() = i;
     chk->Data().Size() = sizeof(i);
-    data = reinterpret_cast<uint64_t*>(chk->Data().Addr());
+
+    data = reinterpret_cast<uint64_t*>(shmGuard.Data().Addr());
     *data = i;
     sum += *data;
-#if 1
+
     printf("[WRITER] j:%8d seq:%16ld data:%16ld size:%d sum:%ld\n"
         , j, chk->Data().Head()->seq
         , *data
         , chk->Data().Size()
         , sum);
-#endif
     chk->UnLock();
+
+#else
+    ShmQueue::ShmChunkGuard shmGuard = shm_queue.Enqueue(j);
+    shmGuard.Data().Seq() = i;
+    shmGuard.Data().Size() = sizeof(i);
+
+    data = reinterpret_cast<uint64_t*>(shmGuard.Data().Addr());
+    *data = i;
+    sum += *data;
+
+    printf("[WRITER] j:%8d seq:%16ld data:%16ld size:%d sum:%ld\n"
+        , j, shmGuard.Data().Head()->seq
+        , *data
+        , shmGuard.Data().Size()
+        , sum);
+#endif
+
     usleep(1000);
     //usleep(1000000);
   }
@@ -433,6 +476,8 @@ int run_reader() {
   for (uint64_t i=0; i<SEM_RUN; i++) {
     int j = i%SHM_NUM;
     uint64_t seq = 0;
+
+#if 0
     auto chk = shm_queue.At(j);
 
     do {
@@ -448,7 +493,22 @@ int run_reader() {
       chk->UnLock();
       usleep(1);
     } while(true);
+#else
 
+
+    do {
+      ShmQueue::ShmChunkGuard shmGuard = shm_queue.Enqueue(j);
+      seq = shmGuard.Data().Seq();
+      size = shmGuard.Data().Size();
+      data = *(reinterpret_cast<uint64_t*>(shmGuard.Data().Addr()));
+      if (seq_curr <= seq && size > 0) {
+        sum += data;
+        break;
+      }
+      usleep(1);
+    } while(true);
+
+#endif
     seq_curr = seq;
 
 #if 1
