@@ -1,4 +1,5 @@
 
+#include "ipc_helper.hpp"
 #include "ipc_shm.hpp"
 
 #define SHM_NAME "/my_shm"
