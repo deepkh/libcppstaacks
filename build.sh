@@ -1,3 +1,3 @@
 #!/bin/bash
 
-g++ shm_test.cpp -lpthread -o shm_test
+g++ -std=c++20 shm_test.cpp -lpthread -lssl -lcrypto -o shm_test
