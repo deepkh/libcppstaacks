@@ -123,16 +123,9 @@ TEST_F(ShmSeqTest, ReaderWriter)
 
 
 
-
-
-
-
-
-
-
 class ShmLargeDataTest : public ::testing::Test
 {
-  public:
+public:
   std::string SHM_NAME = "/my_shm";
   std::string SEM_NAME = "/my_sem"; 
   int SHM_CAPACITY = 32000;
@@ -193,7 +186,6 @@ int ShmLargeDataTest::run_writer(int pid)
 
   printf("[WRITER] TOTAL:%ld\n", sum);
   return 0;
-
 }
 
 int ShmLargeDataTest::run_reader(int pid)
@@ -242,12 +234,13 @@ int ShmLargeDataTest::run_reader(int pid)
 
       // check md5 hex
       for (int j=0; j<16; j++) {
-        if (buf[j] != md5_ret.second.data()[j]) {
+        //printf("%03d %02X %02X\n", j, buf[j], (uint8_t) md5_ret.second.data()[j]);
+        if (buf[j] != (uint8_t) md5_ret.second.data()[j]) {
           break;
         }
 
         // last element are equal, so leave the loop
-        if (buf[j] == md5_ret.second.data()[j] && j == 15) {
+        if (buf[j] == (uint8_t) md5_ret.second.data()[j] && j == 15) {
           is_checksum_equal = true;
           break;
         }
