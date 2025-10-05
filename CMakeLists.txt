@@ -46,3 +46,12 @@ target_link_libraries(sem_gtest
         OpenSSL::SSL
         OpenSSL::Crypto
 )
+
+set(CMAKE_C_COMPILER clang)
+set(CMAKE_CXX_COMPILER clang++)
+
+# Enable compiler sanitizers (MemorySanitizer)
+add_compile_options(-fsanitize=memory -fPIE -pie -fno-omit-frame-pointer -g -O1)
+add_link_options(-fsanitize=memory)
+
+add_executable(sanitize_test sanitize_test.cpp)

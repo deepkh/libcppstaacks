@@ -1,9 +1,9 @@
 #!/bin/bash
 
-OUT=Out
+OUT=Debug
 
 # Generate Makefile from CMake
-if [ ! -d Out ];then
+if [ ! -d Debug ];then
 mkdir $OUT
 pushd $OUT
 cmake -DCMAKE_BUILD_TYPE=Debug ../
