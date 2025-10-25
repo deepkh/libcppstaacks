@@ -1,16 +1,30 @@
 #!/bin/bash
+set -e
 
-OUT=Debug
+# Go to the script's directory
+cd "$(dirname "$0")"
 
-# Generate Makefile from CMake
-if [ ! -d Debug ];then
-mkdir $OUT
-pushd $OUT
-cmake -DCMAKE_BUILD_TYPE=Debug ../
-popd
+BUILD_DIR=build
+
+# Clean previous build directory (optional)
+if [ "$1" == "clean" ]; then
+    echo "Cleaning build and Debug directories..."
+    rm -rf "$BUILD_DIR" Debug
+    exit 0
 fi
 
-# Build
-pushd $OUT
-make -j4
-popd
+# Create build directory
+mkdir -p "$BUILD_DIR"
+cd "$BUILD_DIR"
+
+# Run CMake and build
+echo "Configuring project..."
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+
+echo "Building project..."
+make -j"$(nproc)" VERBOSE=1
+
+echo ""
+echo "✅ Build complete!"
+echo "Binaries and libraries are located in:"
+echo "  $(realpath ../Debug)"

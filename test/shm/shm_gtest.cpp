@@ -1,5 +1,5 @@
-#include "ipc_helper.hpp"
-#include "ipc_shm.hpp"
+#include <cppstuff/shm/shm.hpp>
+#include <cppstuff/helper/ipc_helper.hpp>
 
 #include <gtest/gtest.h>
 

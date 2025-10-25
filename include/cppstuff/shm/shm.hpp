@@ -17,7 +17,7 @@
 #include <vector>
 #include <span>        // since C++ 20
 
-#include "random_data_generator.hpp"
+#include <cppstuff/helper/random_data_generator.hpp>
 #include <functional>
 
 namespace ipc {

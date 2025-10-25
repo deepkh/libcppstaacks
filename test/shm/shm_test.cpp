@@ -1,6 +1,7 @@
 
-#include "ipc_helper.hpp"
-#include "ipc_shm.hpp"
+#include <cppstuff/shm/shm.hpp>
+#include <cppstuff/helper/ipc_helper.hpp>
+
 
 #define SHM_NAME "/my_shm"
 //#define SHM_CAPACITY 64

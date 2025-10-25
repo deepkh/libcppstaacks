@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include "ipc_helper.hpp"
-#include "ipc_shm.hpp"
+#include <cppstuff/shm/shm.hpp>
+#include <cppstuff/helper/ipc_helper.hpp>
 
 #include <unistd.h>      // fork()
 #include <sys/wait.h>    // WIFEXITED, etc.
