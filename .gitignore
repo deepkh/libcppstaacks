@@ -1,0 +1,21 @@
+# Generated build directories
+/build/
+/build-local/
+/build-codex/
+/Debug/
+
+# CMake-generated files
+/CMakeCache.txt
+/CMakeFiles/
+/cmake_install.cmake
+/Makefile
+/compile_commands.json
+
+# Editor and local tool directories
+/.vscode/
+/.codex/
+/AGENTS.md
+
+# OS clutter
+.DS_Store
+Thumbs.db
