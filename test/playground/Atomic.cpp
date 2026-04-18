@@ -1,7 +1,7 @@
+#include <atomic>
 #include <iostream>
 #include <thread>
 #include <vector>
-#include <atomic>
 
 std::atomic<int> counter(0); // Atomic variable
 
@@ -27,9 +27,10 @@ int main() {
         threads.emplace_back(decrement);
     }
 
-    for (auto &t : threads) t.join();
+    for (auto &t : threads)
+        t.join();
 
-    std::cout << "Counter: " << counter << "\n"; 
+    std::cout << "Counter: " << counter << "\n";
     // ✅ Always 400000
     return 0;
 }

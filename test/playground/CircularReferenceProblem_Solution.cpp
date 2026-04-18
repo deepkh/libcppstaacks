@@ -9,7 +9,7 @@ struct A {
 };
 
 struct B {
-    std::weak_ptr<A> a_ptr;   // Weak reference to A
+    std::weak_ptr<A> a_ptr; // Weak reference to A
     ~B() { std::cout << "B destroyed\n"; }
 };
 

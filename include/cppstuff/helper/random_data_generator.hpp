@@ -1,17 +1,16 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <random>
-#include <algorithm>
 
-#include <openssl/md5.h>
-#include <cstdint>
-#include <string>
-#include <sstream>
-#include <iomanip>
 #include <array>
+#include <cstdint>
+#include <iomanip>
+#include <openssl/md5.h>
+#include <sstream>
+#include <string>
 #include <utility>
-
 
 namespace random_data_generator {
 
@@ -38,7 +37,7 @@ static int gen(uint8_t *buf, int size) {
 static std::pair<std::string, std::array<char, MD5_DIGEST_LENGTH>> md5(uint8_t *buf, int size) {
     std::pair<std::string, std::array<char, MD5_DIGEST_LENGTH>> ret;
     ret.first = "";
-    
+
     if (!buf || size <= 0) {
         return ret;
     }
@@ -48,8 +47,7 @@ static std::pair<std::string, std::array<char, MD5_DIGEST_LENGTH>> md5(uint8_t *
 
     std::ostringstream oss;
     for (int i = 0; i < MD5_DIGEST_LENGTH; ++i) {
-        oss << std::hex << std::setw(2) << std::setfill('0')
-            << static_cast<int>(result[i]);
+        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(result[i]);
     }
 
     ret.first = oss.str();
@@ -57,7 +55,4 @@ static std::pair<std::string, std::array<char, MD5_DIGEST_LENGTH>> md5(uint8_t *
     return ret;
 }
 
-
-
-
-}
+} // namespace random_data_generator
