@@ -28,8 +28,6 @@ test/
     shm_test.cpp
   thread/
     msg_queue_gtest.cpp
-  playground/
-    *.cpp
 ```
 
 ## Requirements
@@ -152,9 +150,8 @@ The shared-memory tests cover:
 - `ctest` reports no tests because `enable_testing()` and `add_test()` are not configured.
 - `random_data_generator.hpp` uses OpenSSL `MD5()`, which emits a deprecation warning on OpenSSL 3.x.
 - `build.sh` assumes deleting `build/` and `Debug/` is acceptable.
-- The codebase is closer to an IPC/concurrency playground than a packaged library with install targets or versioned releases.
+- The codebase is a small IPC/concurrency utility repository rather than a packaged library with install targets or versioned releases.
 
 ## Notes
 
 - `docs/stl_comparsion.htm` is a standalone reference document and not part of the build.
-- `test/playground/` contains extra experiments; its CMake file currently has its executable targets commented out.
