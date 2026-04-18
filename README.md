@@ -1,5 +1,7 @@
 # libcppstaacks
 
+[![Build and Release](https://github.com/deepkh/libcppstaacks/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/deepkh/libcppstaacks/actions/workflows/release.yml)
+
 Small C++20 experiments around concurrency and IPC.
 
 The repository currently contains two main building blocks:
