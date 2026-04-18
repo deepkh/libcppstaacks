@@ -20,8 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <cppstuff/helper/ipc_helper.hpp>
-#include <cppstuff/shm/shm.hpp>
+#include <libcppstaacks/helper/ipc_helper.hpp>
+#include <libcppstaacks/shm/shm.hpp>
 
 #include <gtest/gtest.h>
 

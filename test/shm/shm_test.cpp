@@ -21,8 +21,8 @@ SOFTWARE.
 */
 
 
-#include <cppstuff/helper/ipc_helper.hpp>
-#include <cppstuff/shm/shm.hpp>
+#include <libcppstaacks/helper/ipc_helper.hpp>
+#include <libcppstaacks/shm/shm.hpp>
 
 #define SHM_NAME "/my_shm"
 // #define SHM_CAPACITY 64

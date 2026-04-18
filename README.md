@@ -4,15 +4,15 @@ Small C++20 experiments around concurrency and IPC.
 
 The repository currently contains two main building blocks:
 
-- `include/cppstuff/thread/msg_queue.hpp`: a thread-safe in-process message queue using `std::queue`, `std::mutex`, `std::condition_variable`, `std::promise`, and `std::future`
-- `include/cppstuff/shm/shm.hpp`: POSIX shared-memory helpers built from `shm_open`, `mmap`, and named semaphores for simple multi-process data exchange
+- `include/libcppstaacks/thread/msg_queue.hpp`: a thread-safe in-process message queue using `std::queue`, `std::mutex`, `std::condition_variable`, `std::promise`, and `std::future`
+- `include/libcppstaacks/shm/shm.hpp`: POSIX shared-memory helpers built from `shm_open`, `mmap`, and named semaphores for simple multi-process data exchange
 
 Most of the project behavior is exercised through GoogleTest-based executables under `test/`.
 
 ## Repository layout
 
 ```text
-include/cppstuff/
+include/libcppstaacks/
   helper/
     ipc_helper.hpp
     random_data_generator.hpp
