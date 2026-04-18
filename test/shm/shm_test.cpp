@@ -20,7 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 #include <libcppstaacks/helper/ipc_helper.hpp>
 #include <libcppstaacks/shm/shm.hpp>
 
@@ -52,18 +51,18 @@ int run_writer() {
     sem_lock.UnLock();
   }
 #else
-    ipc::ShmQueue shm_queue;
-    uint64_t *data;
-    uint64_t sum = 0;
-    if (shm_queue.Init(SHM_NAME, true, true, SHM_CAPACITY, SHM_NUM)) {
-        printf("%s failed to shm_queue.Init\n", __func__);
-        return -1;
-    }
+  ipc::ShmQueue shm_queue;
+  uint64_t *data;
+  uint64_t sum = 0;
+  if (shm_queue.Init(SHM_NAME, true, true, SHM_CAPACITY, SHM_NUM)) {
+    printf("%s failed to shm_queue.Init\n", __func__);
+    return -1;
+  }
 
-    usleep(5000000);
+  usleep(5000000);
 
-    for (uint64_t i = 0; i < SEM_RUN; i++) {
-        int j = i % SHM_NUM;
+  for (uint64_t i = 0; i < SEM_RUN; i++) {
+    int j = i % SHM_NUM;
 #if 0
     auto chk = shm_queue.At(j);
     chk->Lock();
@@ -98,41 +97,41 @@ int run_writer() {
         , shmGuard.Data().Size()
         , sum);
 #else
-        ipc::ShmQueue::ShmChunkGuard shmGuard = shm_queue.Enqueue(j);
-        auto buf = shmGuard.Data().Addr();
-        int size = SHM_CAPACITY;
-        shmGuard.Data().Seq() = i;
-        shmGuard.Data().Size() = size;
+    ipc::ShmQueue::ShmChunkGuard shmGuard = shm_queue.Enqueue(j);
+    auto buf = shmGuard.Data().Addr();
+    int size = SHM_CAPACITY;
+    shmGuard.Data().Seq() = i;
+    shmGuard.Data().Size() = size;
 
-        // gen random data into buf
-        random_data_generator::gen(buf, size);
+    // gen random data into buf
+    random_data_generator::gen(buf, size);
 
-        // calc md5 for the buf
-        auto md5_ret = random_data_generator::md5(buf + 16, size - 16);
-        std::span<uint8_t> view(buf + 16, size - 16);
-        for (auto &b : view) {
-            sum = (sum + b) % 256;
-        }
-
-        // fill md5 hex
-        for (int j = 0; j < 16; j++) {
-            buf[j] = md5_ret.second.data()[j];
-        }
-
-        shmGuard.Dequeue();
-
-        printf("[WRITER] j:%8d seq:%16ld size:%d md5:%s sum:%ld \n", j, i, size,
-               md5_ret.first.c_str(), sum);
-
-#endif
-#endif
-        usleep(50);
-        // usleep(1000000);
+    // calc md5 for the buf
+    auto md5_ret = random_data_generator::md5(buf + 16, size - 16);
+    std::span<uint8_t> view(buf + 16, size - 16);
+    for (auto &b : view) {
+      sum = (sum + b) % 256;
     }
 
-    printf("TOTAL:%ld\n", sum);
+    // fill md5 hex
+    for (int j = 0; j < 16; j++) {
+      buf[j] = md5_ret.second.data()[j];
+    }
+
+    shmGuard.Dequeue();
+
+    printf("[WRITER] j:%8d seq:%16ld size:%d md5:%s sum:%ld \n", j, i, size, md5_ret.first.c_str(),
+           sum);
+
 #endif
-    return 0;
+#endif
+    usleep(50);
+    // usleep(1000000);
+  }
+
+  printf("TOTAL:%ld\n", sum);
+#endif
+  return 0;
 }
 
 int run_reader() {
@@ -152,20 +151,20 @@ int run_reader() {
     sem_lock.UnLock();
   }
 #else
-    ipc::ShmQueue shm_queue;
-    uint64_t data;
-    int size;
-    uint64_t sum = 0;
-    if (shm_queue.Init(SHM_NAME, false, false, SHM_CAPACITY, SHM_NUM)) {
-        printf("%s failed to shm_queue.Init\n", __func__);
-        return -1;
-    }
+  ipc::ShmQueue shm_queue;
+  uint64_t data;
+  int size;
+  uint64_t sum = 0;
+  if (shm_queue.Init(SHM_NAME, false, false, SHM_CAPACITY, SHM_NUM)) {
+    printf("%s failed to shm_queue.Init\n", __func__);
+    return -1;
+  }
 
-    uint64_t seq_curr = 0;
+  uint64_t seq_curr = 0;
 
-    for (uint64_t i = 0; i < SEM_RUN; i++) {
-        int j = i % SHM_NUM;
-        uint64_t seq = 0;
+  for (uint64_t i = 0; i < SEM_RUN; i++) {
+    int j = i % SHM_NUM;
+    uint64_t seq = 0;
 
 #if 0
     auto chk = shm_queue.At(j);
@@ -207,77 +206,77 @@ int run_reader() {
         , sum);
 
 #else
-        std::pair<std::string, std::array<char, MD5_DIGEST_LENGTH>> md5_ret;
-        bool is_checksum_equal = false;
-        do {
-            ipc::ShmQueue::ShmChunkGuard shmGuard = shm_queue.Enqueue(j);
-            seq = shmGuard.Data().Seq();
-            size = shmGuard.Data().Size();
-            auto buf = shmGuard.Data().Addr();
+    std::pair<std::string, std::array<char, MD5_DIGEST_LENGTH>> md5_ret;
+    bool is_checksum_equal = false;
+    do {
+      ipc::ShmQueue::ShmChunkGuard shmGuard = shm_queue.Enqueue(j);
+      seq = shmGuard.Data().Seq();
+      size = shmGuard.Data().Size();
+      auto buf = shmGuard.Data().Addr();
 
-            // check if the slot is not reach out
-            if (!(seq_curr <= seq && size > 0)) {
-                shmGuard.Dequeue();
-                usleep(1);
-                continue;
-            }
+      // check if the slot is not reach out
+      if (!(seq_curr <= seq && size > 0)) {
+        shmGuard.Dequeue();
+        usleep(1);
+        continue;
+      }
 
-            // calc md5 for the buf
-            md5_ret = random_data_generator::md5(buf + 16, size - 16);
-            std::span<uint8_t> view(buf + 16, size - 16);
-            for (auto &b : view) {
-                sum = (sum + b) % 256;
-            }
+      // calc md5 for the buf
+      md5_ret = random_data_generator::md5(buf + 16, size - 16);
+      std::span<uint8_t> view(buf + 16, size - 16);
+      for (auto &b : view) {
+        sum = (sum + b) % 256;
+      }
 
-            // fill md5 hex
-            for (int j = 0; j < 16; j++) {
-                if (buf[j] != md5_ret.second.data()[j]) {
-                    break;
-                }
-
-                // last element are equal, so leave the loop
-                if (buf[j] == md5_ret.second.data()[j] && j == 15) {
-                    is_checksum_equal = true;
-                    break;
-                }
-            }
-
-            shmGuard.Dequeue();
-            break;
-        } while (true);
-
-        printf("[READER] j:%8d seq:%16ld size:%d md5:%s sum:%ld eq:%d\n", j, seq, size,
-               md5_ret.first.c_str(), sum, is_checksum_equal);
-
-        if (!is_checksum_equal) {
-            return -1;
+      // fill md5 hex
+      for (int j = 0; j < 16; j++) {
+        if (buf[j] != md5_ret.second.data()[j]) {
+          break;
         }
 
-#endif
-#endif
-        seq_curr = seq;
+        // last element are equal, so leave the loop
+        if (buf[j] == md5_ret.second.data()[j] && j == 15) {
+          is_checksum_equal = true;
+          break;
+        }
+      }
+
+      shmGuard.Dequeue();
+      break;
+    } while (true);
+
+    printf("[READER] j:%8d seq:%16ld size:%d md5:%s sum:%ld eq:%d\n", j, seq, size,
+           md5_ret.first.c_str(), sum, is_checksum_equal);
+
+    if (!is_checksum_equal) {
+      return -1;
     }
-    printf("TOTAL:%ld\n", sum);
+
+#endif
+#endif
+    seq_curr = seq;
+  }
+  printf("TOTAL:%ld\n", sum);
 
 #endif
 
-    return 0;
+  return 0;
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s [writer|reader]\n", argv[0]);
-        return 1;
-    }
+  if (argc != 2) {
+    fprintf(stderr, "Usage: %s [writer|reader]\n", argv[0]);
+    return 1;
+  }
 
-    if (strcmp(argv[1], "writer") == 0) {
-        run_writer();
-    } else if (strcmp(argv[1], "reader") == 0) {
-        run_reader();
-    } else {
-        fprintf(stderr, "Unknown mode: %s\n", argv[1]);
-        return 1;
-    }
+  if (strcmp(argv[1], "writer") == 0) {
+    run_writer();
+  } else if (strcmp(argv[1], "reader") == 0) {
+    run_reader();
+  } else {
+    fprintf(stderr, "Unknown mode: %s\n", argv[1]);
+    return 1;
+  }
 
-    return 0;
+  return 0;
 }
