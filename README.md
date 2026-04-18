@@ -151,7 +151,3 @@ The shared-memory tests cover:
 - `random_data_generator.hpp` uses OpenSSL `MD5()`, which emits a deprecation warning on OpenSSL 3.x.
 - `build.sh` assumes deleting `build/` and `Debug/` is acceptable.
 - The codebase is a small IPC/concurrency utility repository rather than a packaged library with install targets or versioned releases.
-
-## Notes
-
-- `docs/stl_comparsion.htm` is a standalone reference document and not part of the build.
